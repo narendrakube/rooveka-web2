@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rooveka-dark: #1C120C;
+  --color-rooveka-brown: #2A1A12;
+  --color-rooveka-cream: #FDFBF7;
+  --color-rooveka-cream-soft: #F6F2EA;
+  --color-rooveka-beige: #EAE2D3;
+  --color-rooveka-espresso: #120B07;
+  --color-rooveka-gold: #C5A059;
+  --color-rooveka-gold-light: #D9BA7D;
+  --color-rooveka-terracotta: #B4583E;
+  --color-rooveka-muted: #8C7F75;
+  --color-rooveka-border: #E2D9CC;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", Inter, sans-serif;
+}
+
+body {
+  background-color: #FDFBF7;
+  color: #1C120C;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F2EA;
+}
+::-webkit-scrollbar-thumb {
+  background: #C5A059;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2A1A12;
+}
+
+/* Subtle image overlay effects */
+.artisan-card-shadow {
+  box-shadow: 0 10px 30px -10px rgba(28, 18, 12, 0.08);
+}
+.artisan-card-shadow:hover {
+  box-shadow: 0 20px 40px -12px rgba(28, 18, 12, 0.14);
+}
+
+.modal-backdrop-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-right {
+  animation: slideRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s infinite ease-in-out;
+}
