@@ -1,16 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { pool, testConnection } from './db.js';
 import { initializeSchema } from './schema.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend assets from dist directory
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
 
 // Initialize DB Connection & Tables
 await testConnection();
@@ -262,6 +271,11 @@ app.put('/api/settings/shipping-threshold', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to update threshold' });
   }
+});
+
+// Wildcard Route Handler to serve index.html for all frontend pages
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, () => {

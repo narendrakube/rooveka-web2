@@ -7,16 +7,24 @@ export interface ProductSizeOption {
 export interface Product {
   id: string;
   name: string;
+  slug?: string;
   subtitle: string;
   shortDescription: string;
   fullDescription: string;
   cocoaPercentage?: string;
-  category: 'Tablets' | 'Hot Chocolate';
+  category: string;
   sizes: ProductSizeOption[];
   ingredients: string[];
   tastingNotes: string[];
-  bgTheme: 'dark-espresso' | 'cream-beige' | 'cocoa-warm';
+  bgTheme: string;
   imageTag: string;
+  // New fields from Add Product feature
+  images?: string[];           // uploaded image URLs from product_images table
+  discountPrice?: number | null;
+  stockQuantity?: number;
+  sku?: string | null;
+  status?: 'Active' | 'Inactive';
+  tags?: string[];
 }
 
 export interface CartItem {
@@ -44,7 +52,7 @@ export type OrderStatus = 'Pending' | 'Dispatched' | 'Delivered' | 'Cancelled';
 
 export interface OrderRecord {
   orderId: string;
-  createdAt: string; // Formatted date e.g. "08 Sep 2026, 04:30 PM"
+  createdAt: string;
   customerName: string;
   email: string;
   phone: string;
@@ -58,4 +66,24 @@ export interface OrderRecord {
   shippingCost: number;
   totalAmount: number;
   status: OrderStatus;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface NewProductForm {
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  discountPrice: string;
+  categoryId: string;
+  stockQuantity: string;
+  sku: string;
+  status: 'Active' | 'Inactive';
+  tags: string;
+  sizes: { label: string; price: string; isPopular: boolean }[];
 }

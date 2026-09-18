@@ -19,6 +19,20 @@ export async function initializeSchema() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    // Ensure columns exist on products table (if created manually earlier)
+    const [prodCols] = await connection.query('SHOW COLUMNS FROM products');
+    const prodColNames = prodCols.map((c) => c.Field);
+
+    if (!prodColNames.includes('full_description')) {
+      await connection.query('ALTER TABLE products ADD COLUMN full_description TEXT');
+    }
+    if (!prodColNames.includes('bg_theme')) {
+      await connection.query('ALTER TABLE products ADD COLUMN bg_theme VARCHAR(50)');
+    }
+    if (!prodColNames.includes('subtitle')) {
+      await connection.query('ALTER TABLE products ADD COLUMN subtitle VARCHAR(150)');
+    }
+
     // 2. Create Product Sizes & Prices Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_sizes (
@@ -31,6 +45,13 @@ export async function initializeSchema() {
         UNIQUE KEY unique_prod_size (product_id, size_label)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Ensure columns exist on product_sizes table
+    const [sizeCols] = await connection.query('SHOW COLUMNS FROM product_sizes');
+    const sizeColNames = sizeCols.map((c) => c.Field);
+    if (!sizeColNames.includes('is_popular')) {
+      await connection.query('ALTER TABLE product_sizes ADD COLUMN is_popular TINYINT(1) DEFAULT 0');
+    }
 
     // 3. Create Orders Table
     await connection.query(`
@@ -109,13 +130,13 @@ export async function initializeSchema() {
 
       // Seed Initial Sample Orders
       await connection.query(`
-        INSERT INTO orders (order_id, customer_name, email, phone, address, city, pincode, state, payment_method, subtotal, shipping_cost, total_amount, status, created_at) VALUES
+        INSERT IGNORE INTO orders (order_id, customer_name, email, phone, address, city, pincode, state, payment_method, subtotal, shipping_cost, total_amount, status, created_at) VALUES
         ('ROOV-849201', 'Ananya Sharma', 'ananya.s@gmail.com', '+91 98490 12345', 'Flat 402, Jubilee Hills Road No. 36', 'Hyderabad', '500033', 'Telangana', 'upi', 1885.00, 0.00, 1885.00, 'Dispatched', '08 Sep 2026, 02:45 PM'),
         ('ROOV-731940', 'Ravi Kumar', 'ravikumar.ap@yahoo.com', '+91 94401 88234', 'Door 12-4-8, MG Road, Labbipet', 'Vijayawada', '520010', 'Andhra Pradesh', 'card', 565.00, 99.00, 664.00, 'Pending', '08 Sep 2026, 11:15 AM');
       `);
 
       await connection.query(`
-        INSERT INTO order_items (order_id, product_id, product_name, size_label, quantity, price, image_tag) VALUES
+        INSERT IGNORE INTO order_items (order_id, product_id, product_name, size_label, quantity, price, image_tag) VALUES
         ('ROOV-849201', 'rooveka-70-dark', '70% Dark Chocolate', '100g', 2, 595.00, '70-dark-bar'),
         ('ROOV-849201', 'rooveka-hot-chocolate', 'Hot Chocolate', '300g', 1, 695.00, 'hot-chocolate-canister'),
         ('ROOV-731940', 'rooveka-50-dark', '50% Dark Chocolate', '100g', 1, 565.00, '50-dark-bar');

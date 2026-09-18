@@ -13,10 +13,14 @@ import {
   Search, 
   DollarSign,
   MapPin,
-  CreditCard
+  CreditCard,
+  Plus,
+  Layers,
+  ImageIcon
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { ProductImageGraphic } from './ProductImageGraphic';
+import { AddProductModal } from './AddProductModal';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -27,14 +31,16 @@ export const AdminDashboard: React.FC = () => {
     products, 
     updateProductPrice, 
     pricingConfig, 
-    updateFreeShippingThreshold 
+    updateFreeShippingThreshold,
+    refreshProducts,
   } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'pricing'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'pricing' | 'products'>('analytics');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('All');
   const [editingPrices, setEditingPrices] = useState<{ [key: string]: number }>({});
   const [editingThreshold, setEditingThreshold] = useState<number>(pricingConfig.freeShippingThreshold);
+  const [showAddProduct, setShowAddProduct] = useState(false);
 
   if (!isAdminViewOpen) return null;
 
@@ -146,6 +152,18 @@ export const AdminDashboard: React.FC = () => {
           >
             <Tag size={16} />
             <span>Price & Catalog Settings</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-5 py-2.5 text-xs font-semibold tracking-wider uppercase flex items-center space-x-2 border-b-2 transition-all ${
+              activeTab === 'products'
+                ? 'border-rooveka-gold text-rooveka-gold bg-rooveka-gold/10'
+                : 'border-transparent text-rooveka-cream/70 hover:text-rooveka-cream'
+            }`}
+          >
+            <Layers size={16} />
+            <span>Products Catalog ({products.length})</span>
           </button>
         </div>
       </header>
@@ -615,7 +633,104 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* =================================================================== */}
+        {/* TAB 4: PRODUCTS CATALOG */}
+        {/* =================================================================== */}
+        {activeTab === 'products' && (
+          <div className="space-y-6 animate-fade-in">
+
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-serif font-bold text-rooveka-dark">Products Catalog</h2>
+                <p className="text-xs text-rooveka-muted mt-1">{products.length} product{products.length !== 1 ? 's' : ''} in the store</p>
+              </div>
+              <button
+                onClick={() => setShowAddProduct(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-rooveka-dark hover:bg-rooveka-brown text-rooveka-cream text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-md"
+              >
+                <Plus size={15} />
+                Add Product
+              </button>
+            </div>
+
+            {/* Products Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {products.map((prod) => (
+                <div key={prod.id} className="bg-white rounded-2xl border border-rooveka-border shadow-sm overflow-hidden">
+                  {/* Image / graphic area */}
+                  <div className="h-40 bg-rooveka-cream-soft flex items-center justify-center relative">
+                    {prod.images && prod.images.length > 0 ? (
+                      <img src={prod.images[0]} alt={prod.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-24 h-24">
+                        <ProductImageGraphic tag={prod.imageTag} aspect="aspect-square" />
+                      </div>
+                    )}
+                    <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      prod.status === 'Inactive'
+                        ? 'bg-stone-200 text-stone-500'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {prod.status ?? 'Active'}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-serif font-bold text-rooveka-dark text-sm leading-tight">{prod.name}</h3>
+                        <p className="text-[11px] text-rooveka-muted mt-0.5">{prod.category}</p>
+                      </div>
+                      {prod.sku && (
+                        <span className="text-[10px] font-mono bg-stone-100 text-stone-500 px-2 py-0.5 rounded flex-shrink-0">{prod.sku}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-rooveka-muted line-clamp-2">{prod.shortDescription}</p>
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex flex-wrap gap-1">
+                        {prod.sizes.map(s => (
+                          <span key={s.label} className="text-[11px] bg-rooveka-cream-soft border border-rooveka-border rounded px-2 py-0.5 font-mono font-semibold text-rooveka-dark">
+                            {s.label} — ₹{s.price}
+                          </span>
+                        ))}
+                      </div>
+                      {typeof prod.stockQuantity === 'number' && (
+                        <span className={`text-[10px] font-semibold ml-2 flex-shrink-0 ${prod.stockQuantity === 0 ? 'text-red-500' : 'text-rooveka-muted'}`}>
+                          Stock: {prod.stockQuantity}
+                        </span>
+                      )}
+                    </div>
+                    {prod.tags && prod.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {prod.tags.map(tag => (
+                          <span key={tag} className="text-[10px] bg-rooveka-gold/10 text-rooveka-brown border border-rooveka-gold/30 rounded px-2 py-0.5">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+
       </main>
+
+      {/* Add Product Modal */}
+      {showAddProduct && (
+        <AddProductModal
+          onClose={() => setShowAddProduct(false)}
+          onSuccess={async () => {
+            await refreshProducts();
+            setShowAddProduct(false);
+          }}
+        />
+      )}
 
     </div>
   );

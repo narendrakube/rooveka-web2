@@ -4,7 +4,7 @@ import { ROOVEKA_PRODUCTS } from '../data/products';
 import { INITIAL_SAMPLE_ORDERS } from '../data/sampleOrders';
 import { INITIAL_ROOVEKA_PRICING, CentralPricingConfig } from '../config/pricing';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 interface ToastState {
   message: string;
@@ -36,6 +36,7 @@ interface CartContextType {
   updateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   updateProductPrice: (productId: string, sizeLabel: string, newPrice: number) => void;
   updateFreeShippingThreshold: (newThreshold: number) => void;
+  refreshProducts: () => Promise<void>;
   cartCount: number;
   subtotal: number;
   toast: ToastState;
@@ -46,8 +47,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [pricingConfig, setPricingConfig] = useState<CentralPricingConfig>(() => {
-    const saved = localStorage.getItem('rooveka_pricing_config');
-    return saved ? JSON.parse(saved) : INITIAL_ROOVEKA_PRICING;
+    try {
+      const saved = localStorage.getItem('rooveka_pricing_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.productPrices) return parsed;
+      }
+    } catch (e) {
+      console.warn('Resetting pricing config to default');
+    }
+    return INITIAL_ROOVEKA_PRICING;
   });
 
   const [products, setProducts] = useState<Product[]>(() => {
@@ -55,19 +64,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prod,
       sizes: prod.sizes.map((s) => ({
         ...s,
-        price: pricingConfig.productPrices[prod.id as keyof typeof pricingConfig.productPrices]?.[s.label] ?? s.price,
+        price: pricingConfig?.productPrices?.[prod.id as keyof typeof pricingConfig.productPrices]?.[s.label] ?? s.price,
       })),
     }));
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('rooveka_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('rooveka_cart');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Resetting cart');
+    }
+    return [];
   });
 
   const [orders, setOrders] = useState<OrderRecord[]>(() => {
-    const saved = localStorage.getItem('rooveka_orders');
-    return saved ? JSON.parse(saved) : INITIAL_SAMPLE_ORDERS;
+    try {
+      const saved = localStorage.getItem('rooveka_orders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Resetting orders');
+    }
+    return INITIAL_SAMPLE_ORDERS;
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -78,19 +97,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdminViewOpen, setIsAdminViewOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>({ message: '', visible: false });
 
+  // 🔄 Fetch products from PHP API (re-usable)
+  const fetchProducts = async () => {
+    try {
+      const prodRes = await fetch(`${API_BASE_URL}/products.php`);
+      if (prodRes.ok) {
+        const apiProducts = await prodRes.json();
+        if (Array.isArray(apiProducts) && apiProducts.length > 0) {
+          setProducts(apiProducts);
+        }
+      }
+    } catch (err) {
+      console.log('ℹ️ Products fetch failed, using local data.');
+    }
+  };
+
   // 🔄 Sync with MySQL Backend API on mount
   useEffect(() => {
     async function fetchFromBackend() {
       try {
-        const prodRes = await fetch(`${API_BASE_URL}/products`);
-        if (prodRes.ok) {
-          const apiProducts = await prodRes.json();
-          if (Array.isArray(apiProducts) && apiProducts.length > 0) {
-            setProducts(apiProducts);
-          }
-        }
+        await fetchProducts();
 
-        const ordRes = await fetch(`${API_BASE_URL}/orders`);
+        const ordRes = await fetch(`${API_BASE_URL}/orders.php`);
         if (ordRes.ok) {
           const apiOrders = await ordRes.json();
           if (Array.isArray(apiOrders)) {
@@ -104,17 +132,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchFromBackend();
   }, []);
 
+  // Public refresh function (called after adding a new product)
+  const refreshProducts = async () => {
+    await fetchProducts();
+  };
+
   // Save to LocalStorage
   useEffect(() => {
-    localStorage.setItem('rooveka_pricing_config', JSON.stringify(pricingConfig));
+    try {
+      localStorage.setItem('rooveka_pricing_config', JSON.stringify(pricingConfig));
+    } catch (e) {}
   }, [pricingConfig]);
 
   useEffect(() => {
-    localStorage.setItem('rooveka_cart', JSON.stringify(cart));
+    try {
+      localStorage.setItem('rooveka_cart', JSON.stringify(cart));
+    } catch (e) {}
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('rooveka_orders', JSON.stringify(orders));
+    try {
+      localStorage.setItem('rooveka_orders', JSON.stringify(orders));
+    } catch (e) {}
   }, [orders]);
 
   const showToast = (message: string) => {
@@ -178,9 +217,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOrders((prev) => [newOrder, ...prev]);
     showToast(`Order ${newOrder.orderId} placed successfully!`);
 
-    // Sync to MySQL API
+    // Sync to PHP MySQL API
     try {
-      await fetch(`${API_BASE_URL}/orders`, {
+      await fetch(`${API_BASE_URL}/orders.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder),
@@ -196,12 +235,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     showToast(`Order ${orderId} status updated to ${newStatus}`);
 
-    // Sync to MySQL API
+    // Sync to PHP MySQL API
     try {
-      await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+      await fetch(`${API_BASE_URL}/orders.php`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ orderId, status: newStatus }),
       });
     } catch (e) {
       console.log('Status updated locally');
@@ -234,12 +273,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     showToast(`Updated price for ${sizeLabel} to ₹${newPrice}`);
 
-    // Sync to MySQL API
+    // Sync to PHP MySQL API
     try {
-      await fetch(`${API_BASE_URL}/products/${productId}/price`, {
+      await fetch(`${API_BASE_URL}/products.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sizeLabel, price: newPrice }),
+        body: JSON.stringify({ id: productId, sizeLabel, price: newPrice }),
       });
     } catch (e) {
       console.log('Price updated locally');
@@ -253,9 +292,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
     showToast(`Free shipping threshold updated to ₹${newThreshold}`);
 
-    // Sync to MySQL API
+    // Sync to PHP MySQL API
     try {
-      await fetch(`${API_BASE_URL}/settings/shipping-threshold`, {
+      await fetch(`${API_BASE_URL}/settings.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threshold: newThreshold }),
@@ -295,6 +334,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateOrderStatus,
         updateProductPrice,
         updateFreeShippingThreshold,
+        refreshProducts,
         cartCount,
         subtotal,
         toast,
