@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../helpers/auth.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -88,11 +89,39 @@ if ($method === 'GET') {
         echo json_encode(['error' => 'Failed to fetch products', 'details' => $e->getMessage()]);
     }
 
-// ── PUT: Update a product size price ───────────────────────────────────────
+// ── PUT: Update product status (admin) or a product size price ─────────────
 } elseif ($method === 'PUT') {
+    $body = json_decode(file_get_contents('php://input'), true);
+    $id   = $body['id'] ?? null;
+
+    // Status toggle: { id, status: 'Active' | 'Inactive' } — admin only
+    if (isset($body['status'])) {
+        $user = requireRole('admin');
+
+        if (!$id || !in_array($body['status'], ['Active', 'Inactive'], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'id and a valid status (Active|Inactive) are required']);
+            exit();
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE products SET status = :status WHERE id = :id");
+            $stmt->execute([':status' => $body['status'], ':id' => $id]);
+            $updated = $stmt->rowCount();
+
+            logAudit('update_product_status', 'product', null, $user['id'], ['product_id' => $id, 'status' => $body['status']]);
+
+            http_response_code(200);
+            echo json_encode(['success' => true, 'id' => $id, 'status' => $body['status'], 'changed' => $updated > 0]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update status', 'details' => $e->getMessage()]);
+        }
+        exit();
+    }
+
+    // Price update: { id, sizeLabel, price }
     try {
-        $body      = json_decode(file_get_contents('php://input'), true);
-        $id        = $body['id']        ?? null;
         $sizeLabel = $body['sizeLabel'] ?? null;
         $price     = $body['price']     ?? null;
 
@@ -111,6 +140,31 @@ if ($method === 'GET') {
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to update price', 'details' => $e->getMessage()]);
+    }
+
+// ── DELETE: Remove inactive products ───────────────────────────────────────
+} elseif ($method === 'DELETE') {
+    $user = requireRole('admin');
+    $input = getInput();
+
+    if (empty($input['inactiveOnly'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'inactiveOnly is required']);
+        exit();
+    }
+
+    try {
+        $stmt = $pdo->prepare("DELETE FROM products WHERE status = 'Inactive'");
+        $stmt->execute();
+        $deleted = $stmt->rowCount();
+
+        logAudit('delete_inactive_products', 'product', null, $user['id'], ['deleted' => $deleted]);
+
+        http_response_code(200);
+        echo json_encode(['success' => true, 'deleted' => $deleted]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to delete products', 'details' => $e->getMessage()]);
     }
 
 } else {
