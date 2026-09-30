@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-export const Header: React.FC = () => {
+export const Header: React.FC<{ onOpenShopPortal?: () => void; onOpenCustomerRewards?: () => void }> = ({ onOpenShopPortal, onOpenCustomerRewards }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, setIsCartOpen, setIsSearchOpen, setIsContactOpen, setIsAdminViewOpen } = useCart();
@@ -133,6 +133,13 @@ export const Header: React.FC = () => {
             <LayoutDashboard size={14} />
             <span>ADMIN</span>
           </button>
+          {onOpenCustomerRewards && (
+            <button onClick={onOpenCustomerRewards}
+              className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all text-[11px] font-semibold tracking-wider uppercase border border-emerald-200"
+              title="My Rewards">
+              <span className="mr-1">&#127873;</span> MY REWARDS
+            </button>
+          )}
         </div>
       </div>
 
@@ -181,6 +188,18 @@ export const Header: React.FC = () => {
             <LayoutDashboard size={14} />
             <span>OPEN ADMIN DASHBOARD</span>
           </button>
+          {onOpenCustomerRewards && (
+            <button onClick={() => { setMobileMenuOpen(false); onOpenCustomerRewards(); }}
+              className="w-full py-2.5 bg-emerald-50 text-emerald-700 text-xs font-semibold tracking-widest uppercase rounded border border-emerald-200">
+              MY REWARDS
+            </button>
+          )}
+          {onOpenShopPortal && (
+            <button onClick={() => { setMobileMenuOpen(false); onOpenShopPortal(); }}
+              className="w-full py-2.5 bg-indigo-50 text-indigo-700 text-xs font-semibold tracking-widest uppercase rounded border border-indigo-200">
+              SHOP PORTAL
+            </button>
+          )}
 
           <div className="pt-2 border-t border-rooveka-border/50 text-[11px] text-rooveka-muted font-serif italic text-center">
             Bean to Bar from Andhra Pradesh

@@ -16,11 +16,13 @@ import {
   CreditCard,
   Plus,
   Layers,
-  ImageIcon
+  ImageIcon,
+  Gift
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { ProductImageGraphic } from './ProductImageGraphic';
 import { AddProductModal } from './AddProductModal';
+import { RewardManagement } from './RewardManagement';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -35,7 +37,7 @@ export const AdminDashboard: React.FC = () => {
     refreshProducts,
   } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'pricing' | 'products'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'pricing' | 'products' | 'rewards'>('analytics');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('All');
   const [editingPrices, setEditingPrices] = useState<{ [key: string]: number }>({});
@@ -164,6 +166,18 @@ export const AdminDashboard: React.FC = () => {
           >
             <Layers size={16} />
             <span>Products Catalog ({products.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rewards')}
+            className={`px-5 py-2.5 text-xs font-semibold tracking-wider uppercase flex items-center space-x-2 border-b-2 transition-all ${
+              activeTab === 'rewards'
+                ? 'border-rooveka-gold text-rooveka-gold bg-rooveka-gold/10'
+                : 'border-transparent text-rooveka-cream/70 hover:text-rooveka-cream'
+            }`}
+          >
+            <Gift size={16} />
+            <span>Rewards & Coupons</span>
           </button>
         </div>
       </header>
@@ -716,6 +730,19 @@ export const AdminDashboard: React.FC = () => {
               ))}
             </div>
 
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* TAB 5: REWARDS & COUPONS */}
+        {/* =================================================================== */}
+        {activeTab === 'rewards' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h2 className="text-xl font-serif font-bold text-rooveka-dark">Reward & Coupon Management</h2>
+              <p className="text-xs text-rooveka-muted mt-1">Manage reward programs, generate product codes, track redemptions</p>
+            </div>
+            <RewardManagement embedded />
           </div>
         )}
 

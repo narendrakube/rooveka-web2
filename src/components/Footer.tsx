@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Check, Globe, Share2, Mail, ShieldCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-export const Footer: React.FC = () => {
+export const Footer: React.FC<{ onOpenShopPortal?: () => void }> = ({ onOpenShopPortal }) => {
   const { setIsContactOpen, setIsAdminViewOpen } = useCart();
   const [subscribed, setSubscribed] = useState(false);
   const [email, setEmail] = useState('');
@@ -120,6 +120,14 @@ export const Footer: React.FC = () => {
                   <span>Admin Dashboard</span>
                 </button>
               </li>
+              {onOpenShopPortal && (
+                <li>
+                  <button onClick={onOpenShopPortal}
+                    className="text-indigo-400 font-semibold uppercase hover:underline flex items-center space-x-1 pt-1 text-xs">
+                    <span>Shop Portal</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

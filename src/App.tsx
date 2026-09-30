@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CartProvider } from './context/CartContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -17,48 +17,35 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { SearchModal } from './components/SearchModal';
 import { ContactModal } from './components/ContactModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ShopPortal } from './components/ShopPortal';
+import { CustomerRedemption } from './components/CustomerRedemption';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { ToastNotification } from './components/ToastNotification';
 
 export function App() {
+  const [showShopPortal, setShowShopPortal] = useState(false);
+  const [showCustomerRewards, setShowCustomerRewards] = useState(false);
+
   return (
     <CartProvider>
       <div className="min-h-screen bg-rooveka-cream text-rooveka-dark flex flex-col font-sans selection:bg-rooveka-gold/20">
         {/* Navigation */}
-        <Header />
+        <Header onOpenShopPortal={() => setShowShopPortal(true)} onOpenCustomerRewards={() => setShowCustomerRewards(true)} />
 
         {/* Main Content Flow */}
         <main className="flex-grow">
-          {/* Hero Section */}
           <Hero />
-
-          {/* Brand Introduction ("THE ROOVEKA WAY") */}
           <BrandIntro />
-
-          {/* Product Catalog ("Explore ROOVEKA" - 3 Core Products) */}
           <ProductCatalog />
-
-          {/* Dedicated Hot Chocolate Experience & 4-Step Guide */}
           <HotChocolateFeature />
-
-          {/* Bean to Bar 8-Stage Journey */}
           <BeanToBarProcess />
-
-          {/* Andhra Pradesh Terroir & Origin Story */}
           <AndhraStory />
-
-          {/* 4 Quality & Trust Pillars */}
           <QualityPillars />
-
-          {/* Ingredient Philosophy ("Nothing to Hide") */}
           <IngredientPhilosophy />
-
-          {/* Founder & Artisan Story */}
           <FounderStory />
         </main>
 
-        {/* Footer */}
-        <Footer />
+        <Footer onOpenShopPortal={() => setShowShopPortal(true)} />
 
         {/* Interactive Drawers & Modals */}
         <ProductModal />
@@ -66,9 +53,11 @@ export function App() {
         <CheckoutModal />
         <SearchModal />
         <ContactModal />
-        
-        {/* Admin Dashboard */}
         <AdminDashboard />
+
+        {/* Shop & Customer Portals */}
+        {showShopPortal && <ShopPortal onClose={() => setShowShopPortal(false)} />}
+        {showCustomerRewards && <CustomerRedemption onClose={() => setShowCustomerRewards(false)} />}
 
         {/* Floating Controls & Notifications */}
         <WhatsAppButton />
