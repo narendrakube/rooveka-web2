@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-export const Header: React.FC<{ onOpenShopPortal?: () => void; onOpenCustomerRewards?: () => void }> = ({ onOpenShopPortal, onOpenCustomerRewards }) => {
+export const Header: React.FC<{ onOpenShopPortal?: () => void; onOpenCustomerRewards?: () => void; onOpenGiftCatalog?: () => void }> = ({ onOpenShopPortal, onOpenCustomerRewards, onOpenGiftCatalog }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, setIsCartOpen, setIsSearchOpen, setIsContactOpen, setIsAdminViewOpen } = useCart();
@@ -92,6 +92,12 @@ export const Header: React.FC<{ onOpenShopPortal?: () => void; onOpenCustomerRew
             HOT CHOCOLATE
           </button>
           <button
+            onClick={() => onOpenGiftCatalog?.()}
+            className="hover:text-rooveka-gold transition-colors uppercase py-1"
+          >
+            GIFTS
+          </button>
+          <button
             onClick={() => scrollToSection('contact')}
             className="hover:text-rooveka-gold transition-colors uppercase py-1"
           >
@@ -170,6 +176,12 @@ export const Header: React.FC<{ onOpenShopPortal?: () => void; onOpenCustomerRew
             className="text-left text-sm font-semibold tracking-widest text-rooveka-dark hover:text-rooveka-gold py-2 border-b border-rooveka-border/30"
           >
             HOT CHOCOLATE
+          </button>
+          <button
+            onClick={() => { setMobileMenuOpen(false); onOpenGiftCatalog?.(); }}
+            className="text-left text-sm font-semibold tracking-widest text-rooveka-dark hover:text-rooveka-gold py-2 border-b border-rooveka-border/30"
+          >
+            GIFTS
           </button>
           <button
             onClick={() => scrollToSection('contact')}

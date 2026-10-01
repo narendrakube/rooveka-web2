@@ -24,7 +24,7 @@ export const CheckoutModal: React.FC = () => {
   const shippingCost = subtotal >= 999 ? 0 : 99;
   const finalTotal = subtotal + shippingCost;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const generatedId = `ROOV-${Math.floor(100000 + Math.random() * 900000)}`;
     setOrderId(generatedId);
@@ -54,7 +54,7 @@ export const CheckoutModal: React.FC = () => {
       status: 'Pending',
     };
 
-    addOrder(newOrderRecord);
+    await addOrder(newOrderRecord);
     setStep('success');
     clearCart();
   };

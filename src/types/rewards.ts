@@ -64,3 +64,16 @@ export interface ShopUser {
   role: string;
   shopName: string;
 }
+
+export interface GiftPoolData {
+  reward: {
+    id: number;
+    rewardName: string;
+    status: string;
+    createdAt: string;
+  } | null;
+  activeCoupons: number;
+  inactiveCoupons: number;
+  expiredCoupons: number;
+  totalCoupons: number;
+}

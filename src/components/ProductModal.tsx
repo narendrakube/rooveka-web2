@@ -11,7 +11,7 @@ export const ProductModal: React.FC = () => {
   useEffect(() => {
     if (selectedProductForModal) {
       const defaultOption = selectedProductForModal.sizes.find((s) => s.isPopular) || selectedProductForModal.sizes[0];
-      setSelectedSize(defaultOption.label);
+      setSelectedSize(defaultOption ? defaultOption.label : '');
       setQuantity(1);
     }
   }, [selectedProductForModal]);
@@ -19,9 +19,10 @@ export const ProductModal: React.FC = () => {
   if (!selectedProductForModal) return null;
 
   const currentSizeOption = selectedProductForModal.sizes.find((s) => s.label === selectedSize) || selectedProductForModal.sizes[0];
-  const totalPrice = currentSizeOption.price * quantity;
+  const totalPrice = currentSizeOption ? currentSizeOption.price * quantity : 0;
 
   const handleAddToCart = () => {
+    if (!currentSizeOption) return;
     addToCart(selectedProductForModal, currentSizeOption.label, currentSizeOption.price, quantity);
     setSelectedProductForModal(null);
   };
@@ -141,14 +142,20 @@ export const ProductModal: React.FC = () => {
             </div>
 
             {/* Add to Cart CTA Button */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-4 bg-rooveka-dark text-rooveka-cream rounded-lg text-xs font-sans font-semibold tracking-widest uppercase hover:bg-rooveka-brown transition-all duration-300 shadow-md flex items-center justify-center space-x-2"
-            >
-              <span>ADD TO CART</span>
-              <span>—</span>
-              <span className="font-mono text-rooveka-gold">₹{totalPrice}</span>
-            </button>
+            {currentSizeOption ? (
+              <button
+                onClick={handleAddToCart}
+                className="w-full py-4 bg-rooveka-dark text-rooveka-cream rounded-lg text-xs font-sans font-semibold tracking-widest uppercase hover:bg-rooveka-brown transition-all duration-300 shadow-md flex items-center justify-center space-x-2"
+              >
+                <span>ADD TO CART</span>
+                <span>—</span>
+                <span className="font-mono text-rooveka-gold">₹{totalPrice}</span>
+              </button>
+            ) : (
+              <p className="text-center text-xs text-rooveka-muted font-serif italic py-3">
+                This gift is unlocked on the My Rewards page — enter 3 qualifying codes to add it at ₹0.00.
+              </p>
+            )}
           </div>
 
         </div>

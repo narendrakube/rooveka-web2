@@ -24,6 +24,7 @@ import { ProductImageGraphic } from './ProductImageGraphic';
 import { AddProductModal } from './AddProductModal';
 import { RewardManagement } from './RewardManagement';
 import { ProductCatalogTab } from './ProductCatalogTab';
+import { AdminLoginModal } from './rewards/AdminLoginModal';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -36,6 +37,7 @@ export const AdminDashboard: React.FC = () => {
     pricingConfig, 
     updateFreeShippingThreshold,
     refreshProducts,
+    refreshOrders,
   } = useCart();
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'pricing' | 'products' | 'rewards'>('analytics');
@@ -46,6 +48,7 @@ export const AdminDashboard: React.FC = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [adminProducts, setAdminProducts] = useState<typeof products>([]);
   const [adminProductsLoading, setAdminProductsLoading] = useState(true);
+  const [ordersAuthRequired, setOrdersAuthRequired] = useState(false);
 
   const fetchAdminProducts = async () => {
     setAdminProductsLoading(true);
@@ -64,6 +67,18 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (isAdminViewOpen) fetchAdminProducts();
   }, [isAdminViewOpen]);
+
+  // Load DB-backed orders whenever admin view opens (uses stored admin token)
+  useEffect(() => {
+    if (isAdminViewOpen) refreshOrders();
+  }, [isAdminViewOpen]);
+
+  // Orders tab requires admin auth — prompt for login if the API says so
+  useEffect(() => {
+    if (isAdminViewOpen && activeTab === 'orders') {
+      refreshOrders().then((r) => setOrdersAuthRequired(r === 'unauthorized'));
+    }
+  }, [isAdminViewOpen, activeTab]);
 
   if (!isAdminViewOpen) return null;
 
@@ -324,7 +339,7 @@ export const AdminDashboard: React.FC = () => {
 
                       <div className="text-right">
                         <div className="text-xs font-serif font-bold text-rooveka-dark">
-                          Starting at ₹{prod.sizes[0].price}
+                          {prod.sizes.length > 0 ? `Starting at ₹${prod.sizes[0].price}` : 'Reward gift — ₹0'}
                         </div>
                         <span className="text-[10px] text-emerald-700 font-mono uppercase font-semibold">
                           Active in Store
@@ -380,7 +395,16 @@ export const AdminDashboard: React.FC = () => {
         {/* =================================================================== */}
         {activeTab === 'orders' && (
           <div className="space-y-6 animate-fade-in">
-            
+
+            {ordersAuthRequired && (
+              <AdminLoginModal
+                onSuccess={() => {
+                  setOrdersAuthRequired(false);
+                  refreshOrders();
+                }}
+              />
+            )}
+
             {/* Filter and Search Bar */}
             <div className="bg-rooveka-cream-soft p-4 rounded-2xl border border-rooveka-border flex flex-col md:flex-row items-center justify-between gap-4">
               

@@ -5,7 +5,8 @@ import { useCart } from '../context/CartContext';
 
 export const HotChocolateFeature: React.FC = () => {
   const { products, setSelectedProductForModal } = useCart();
-  const hotChocolateProduct = products.find((p) => p.id === 'rooveka-hot-chocolate') || products[2];
+  const hotChocolateProduct =
+    products.find((p) => p.id === 'rooveka-hot-chocolate' || p.category === 'Hot Chocolate') || products[2];
   const startingPrice = hotChocolateProduct?.sizes[0]?.price ?? 395;
 
   const steps = [

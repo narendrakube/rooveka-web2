@@ -10,6 +10,7 @@ import { ProgramsTab } from './rewards/ProgramsTab';
 import { CodesTab } from './rewards/CodesTab';
 import { RedemptionsTab } from './rewards/RedemptionsTab';
 import { StatsTab } from './rewards/StatsTab';
+import { RewardAdmin } from './rewards/RewardAdmin';
 import { AdminLoginModal } from './rewards/AdminLoginModal';
 
 const API = 'http://localhost:8000/api';
@@ -44,7 +45,7 @@ interface Props {
 }
 
 export const RewardManagement: React.FC<Props> = ({ onClose, embedded }) => {
-  const [tab, setTab] = useState<'programs' | 'codes' | 'redemptions' | 'stats'>('programs');
+  const [tab, setTab] = useState<'programs' | 'codes' | 'redemptions' | 'stats' | 'gift'>('programs');
   const [loading, setLoading] = useState(true);
   const [programs, setPrograms] = useState<RewardProgram[]>([]);
   const [codes, setCodes] = useState<ProductCode[]>([]);
@@ -168,6 +169,7 @@ export const RewardManagement: React.FC<Props> = ({ onClose, embedded }) => {
           { key: 'programs', label: 'Reward Programs', icon: Trophy },
           { key: 'codes', label: 'Coupon Codes', icon: Ticket },
           { key: 'redemptions', label: 'Redemptions', icon: Gift },
+          { key: 'gift', label: 'Gift Pool', icon: Package },
           { key: 'stats', label: 'Dashboard', icon: BarChart3 },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -193,6 +195,9 @@ export const RewardManagement: React.FC<Props> = ({ onClose, embedded }) => {
         )}
         {tab === 'redemptions' && (
           <RedemptionsTab {...sharedProps} redemptions={redemptions} onRefresh={fetchRedemptions} />
+        )}
+        {tab === 'gift' && (
+          <RewardAdmin authHeaders={authHeaders} onUnauthorized={handleUnauthorized} products={products} />
         )}
         {tab === 'stats' && (
           <StatsTab stats={stats} loading={loading} onRefresh={fetchStats} authHeaders={authHeaders} />
@@ -231,6 +236,7 @@ export const RewardManagement: React.FC<Props> = ({ onClose, embedded }) => {
           { key: 'programs', label: 'Reward Programs', icon: Trophy },
           { key: 'codes', label: 'Coupon Codes', icon: Ticket },
           { key: 'redemptions', label: 'Redemptions', icon: Gift },
+          { key: 'gift', label: 'Gift Pool', icon: Package },
           { key: 'stats', label: 'Dashboard', icon: BarChart3 },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}

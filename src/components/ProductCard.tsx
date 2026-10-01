@@ -43,7 +43,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
               {product.category}
             </span>
             <span className="text-[10px] font-mono text-rooveka-muted">
-              {defaultSize.label}
+              {defaultSize?.label}
             </span>
           </div>
 
@@ -64,7 +64,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
           <div>
             <span className="text-[10px] text-rooveka-muted uppercase tracking-wider block">FROM</span>
             <span className="text-base font-serif font-bold text-rooveka-dark">
-              ₹{defaultSize.price}
+              {defaultSize ? `₹${defaultSize.price}` : '₹0'}
             </span>
           </div>
 

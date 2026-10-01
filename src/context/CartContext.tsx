@@ -32,11 +32,12 @@ interface CartContextType {
   removeFromCart: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, newQuantity: number) => void;
   clearCart: () => void;
-  addOrder: (order: OrderRecord) => void;
+  addOrder: (order: OrderRecord) => Promise<boolean>;
   updateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   updateProductPrice: (productId: string, sizeLabel: string, newPrice: number) => void;
   updateFreeShippingThreshold: (newThreshold: number) => void;
   refreshProducts: () => Promise<void>;
+  refreshOrders: () => Promise<'ok' | 'unauthorized' | 'error'>;
   cartCount: number;
   subtotal: number;
   toast: ToastState;
@@ -112,19 +113,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 🔄 Fetch orders from PHP API (admin token required — DB is source of truth)
+  const refreshOrders = async (): Promise<'ok' | 'unauthorized' | 'error'> => {
+    const token = localStorage.getItem('rooveka_admin_token');
+    if (!token) return 'unauthorized';
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders.php`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401 || res.status === 403) return 'unauthorized';
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setOrders(data);
+          return 'ok';
+        }
+      }
+      return 'error';
+    } catch {
+      return 'error';
+    }
+  };
+
   // 🔄 Sync with MySQL Backend API on mount
   useEffect(() => {
     async function fetchFromBackend() {
       try {
         await fetchProducts();
-
-        const ordRes = await fetch(`${API_BASE_URL}/orders.php`);
-        if (ordRes.ok) {
-          const apiOrders = await ordRes.json();
-          if (Array.isArray(apiOrders)) {
-            setOrders(apiOrders);
-          }
-        }
+        await refreshOrders();
       } catch (err) {
         console.log('ℹ️ Running in standalone mode with persistent storage (Backend API offline or connecting...)');
       }
@@ -213,20 +229,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
-  const addOrder = async (newOrder: OrderRecord) => {
+  const addOrder = async (newOrder: OrderRecord): Promise<boolean> => {
     setOrders((prev) => [newOrder, ...prev]);
-    showToast(`Order ${newOrder.orderId} placed successfully!`);
 
-    // Sync to PHP MySQL API
+    // Sync to PHP MySQL API — DB is the source of truth for admins
+    let saved = false;
+    let failReason = 'server offline';
     try {
-      await fetch(`${API_BASE_URL}/orders.php`, {
+      const res = await fetch(`${API_BASE_URL}/orders.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder),
       });
+      if (res.ok) {
+        saved = true;
+      } else {
+        const data = await res.json().catch(() => null);
+        failReason = data?.error ?? `HTTP ${res.status}`;
+      }
     } catch (e) {
-      console.log('Order saved locally');
+      failReason = 'server offline';
     }
+
+    showToast(
+      saved
+        ? `Order ${newOrder.orderId} placed successfully!`
+        : `Order ${newOrder.orderId} saved locally — server save failed (${failReason})`
+    );
+    return saved;
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
@@ -235,13 +265,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     showToast(`Order ${orderId} status updated to ${newStatus}`);
 
-    // Sync to PHP MySQL API
+    // Sync to PHP MySQL API (admin token)
     try {
-      await fetch(`${API_BASE_URL}/orders.php`, {
+      const token = localStorage.getItem('rooveka_admin_token');
+      const res = await fetch(`${API_BASE_URL}/orders.php`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ orderId, status: newStatus }),
       });
+      if (!res.ok) console.log('Status updated locally only');
     } catch (e) {
       console.log('Status updated locally');
     }
@@ -335,6 +370,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProductPrice,
         updateFreeShippingThreshold,
         refreshProducts,
+        refreshOrders,
         cartCount,
         subtotal,
         toast,

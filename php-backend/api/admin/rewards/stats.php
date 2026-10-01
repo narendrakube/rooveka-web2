@@ -20,7 +20,7 @@ if ($method === 'GET') {
     $stmt = $pdo->query("SELECT COUNT(*) as total, SUM(is_active = 1) as active FROM reward_programs");
     $progStats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Product codes
+    // Gift Pool coupons (the codes My Rewards verifies against)
     $codeWhere = "WHERE 1=1";
     $codeParams = [];
     if ($productId) { $codeWhere .= " AND product_id = ?"; $codeParams[] = $productId; }
@@ -30,10 +30,10 @@ if ($method === 'GET') {
     $stmt = $pdo->prepare("SELECT 
         COUNT(*) as total,
         SUM(status = 'active') as active,
-        SUM(status = 'redeemed') as redeemed,
+        SUM(status = 'inactive') as redeemed,
         SUM(status = 'expired') as expired,
-        SUM(status = 'cancelled') as cancelled
-        FROM product_codes $codeWhere");
+        0 as cancelled
+        FROM coupons_pool $codeWhere");
     $stmt->execute($codeParams);
     $codeStats = $stmt->fetch(PDO::FETCH_ASSOC);
 

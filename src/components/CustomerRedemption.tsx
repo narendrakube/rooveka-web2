@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Gift, Loader, AlertCircle, CheckCircle2, XCircle, Package, MapPin, Store, Truck, X } from 'lucide-react';
+import { Gift, Loader, AlertCircle, CheckCircle2, XCircle, Package, MapPin, Store, Truck, X, ShoppingBag } from 'lucide-react';
 import { StatusBadge } from './RewardManagement';
+import { useCart } from '../context/CartContext';
+import { Product } from '../types';
 
 const API = 'http://localhost:8000/api';
 
@@ -15,7 +17,18 @@ interface RedemptionItem {
   fulfillmentType: string | null; status: string; createdAt: string;
 }
 
+interface ProgramOption {
+  programId: number; programName: string; productId: string; productName: string;
+  subtitle: string | null; imageTag: string | null; category: string | null;
+  requiredQuantity: number; rewardName: string; rewardDescription: string; description: string;
+}
+
+interface RewardCart {
+  productId: string; name: string; price: number; sizeLabel: string;
+}
+
 export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { addToCart, products: catalogProducts } = useCart();
   const [user, setUser] = useState<CustomerUser | null>(null);
   const [tab, setTab] = useState<'login' | 'register' | 'redeem' | 'rewards'>('login');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -24,6 +37,8 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
   const [authing, setAuthing] = useState(false);
 
   const [codes, setCodes] = useState<string[]>(['']);
+  const [programList, setProgramList] = useState<ProgramOption[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<any>(null);
   const [submitError, setSubmitError] = useState('');
@@ -42,6 +57,24 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
       try { setUser(JSON.parse(saved)); setTab('redeem'); } catch { /* ignore */ }
     }
   }, []);
+
+  // Load products that have an active reward program (dropdown options)
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/customer/programs.php`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setProgramList(Array.isArray(data.programs) ? data.programs : []);
+        }
+      } catch { /* offline — dropdown stays empty */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const selectedProgram = programList.find(p => p.productId === selectedProductId);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,8 +118,28 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
     setAuthing(false);
   };
 
+  // Auto-add the unlocked gift to the cart at ₹0 so the customer can check out immediately
+  const autoAddRewardToCart = (rc: RewardCart) => {
+    const existing = catalogProducts.find(p => p.id === rc.productId);
+    const giftProduct: Product = existing ?? {
+      id: rc.productId,
+      name: rc.name,
+      subtitle: 'Complimentary reward gift',
+      shortDescription: 'Unlocked with qualifying product codes on Rooveka Rewards.',
+      fullDescription: 'Unlocked with qualifying product codes on Rooveka Rewards.',
+      category: 'Gifts',
+      sizes: [],
+      ingredients: [],
+      tastingNotes: [],
+      bgTheme: 'cream-beige',
+      imageTag: 'gift-whisker',
+    };
+    addToCart(giftProduct, rc.sizeLabel || 'Reward Gift', 0, 1);
+  };
+
   const handleRedeem = async () => {
     const validCodes = codes.filter(c => c.trim());
+    if (!selectedProductId) { setSubmitError('Please select the product you purchased'); return; }
     if (validCodes.length === 0) { setSubmitError('Enter at least one code'); return; }
     setSubmitting(true);
     setSubmitError('');
@@ -94,13 +147,16 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
     try {
       const res = await fetch(`${API}/customer/redeem.php`, {
         method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ codes: validCodes }),
+        body: JSON.stringify({ productId: selectedProductId, codes: validCodes }),
       });
       const data = await res.json();
       if (!res.ok) { setSubmitError(data.error || 'Redemption failed'); }
       else {
         setSubmitResult(data);
         setCodes(['']);
+        (data.rewardsEarned || []).forEach((r: any) => {
+          if (r.rewardCart) autoAddRewardToCart(r.rewardCart);
+        });
       }
     } catch { setSubmitError('Network error'); }
     setSubmitting(false);
@@ -250,6 +306,32 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
             <div className="bg-white rounded-2xl border border-rooveka-border p-6">
               <h2 className="text-lg font-serif font-bold text-rooveka-dark mb-2">Enter Product Codes</h2>
               <p className="text-sm text-rooveka-muted mb-4">Enter the unique codes found inside your Rooveka chocolate packages. Earn enough codes to qualify for a free reward!</p>
+
+              {/* Product selector — codes must belong to the selected product */}
+              <div className="mb-5">
+                <label htmlFor="reward-product" className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1.5">
+                  Select the product you purchased
+                </label>
+                <select
+                  id="reward-product"
+                  value={selectedProductId}
+                  onChange={e => { setSelectedProductId(e.target.value); setSubmitError(''); }}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                >
+                  <option value="">Choose a product...</option>
+                  {programList.map(p => (
+                    <option key={p.productId} value={p.productId}>{p.productName}</option>
+                  ))}
+                </select>
+                {selectedProgram ? (
+                  <p className="text-xs text-stone-500 mt-2">
+                    Enter <strong>{selectedProgram.requiredQuantity}</strong> codes from <strong>{selectedProgram.productName}</strong> to unlock a free <strong>{selectedProgram.rewardName}</strong>.
+                  </p>
+                ) : programList.length === 0 ? (
+                  <p className="text-xs text-stone-400 mt-2">Loading reward products...</p>
+                ) : null}
+              </div>
+
               <div className="space-y-3">
                 {codes.map((code, i) => (
                   <div key={i} className="flex gap-2">
@@ -289,7 +371,32 @@ export const CustomerRedemption: React.FC<{ onClose: () => void }> = ({ onClose 
                         <span className="font-semibold text-amber-700">Reward Earned!</span>
                       </div>
                       <p className="text-sm text-amber-800">{r.rewardProduct}</p>
-                      <p className="text-xs text-amber-600 mt-1">Code: {r.customerRewardCode}</p>
+                      {r.rewardCart ? (
+                        <div className="mt-2 bg-white border border-emerald-300 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 text-emerald-600">
+                            <ShoppingBag size={13} />
+                            <p className="text-[10px] uppercase tracking-wider font-semibold">Added to your cart — ₹0.00</p>
+                          </div>
+                          <p className="text-sm font-bold text-rooveka-dark mt-0.5">{r.rewardCart.name} ×1</p>
+                          <button
+                            onClick={onClose}
+                            className="mt-2.5 w-full py-2 bg-rooveka-dark text-rooveka-cream text-xs font-semibold tracking-widest uppercase rounded-lg hover:bg-rooveka-brown transition"
+                          >
+                            View Cart &amp; Checkout
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-600 mt-1">Code: {r.customerRewardCode}</p>
+                      )}
+                      {r.warning && (
+                        <p className="text-xs text-orange-600 mt-2 flex items-center gap-1"><AlertCircle size={11} /> {r.warning}</p>
+                      )}
+                    </div>
+                  ))}
+                  {submitResult.warnings?.map((w: string, i: number) => (
+                    <div key={`w-${i}`} className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-2 text-sm">
+                      <AlertCircle size={16} className="text-orange-500" />
+                      <span className="text-orange-700">{w}</span>
                     </div>
                   ))}
                 </div>

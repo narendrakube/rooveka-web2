@@ -11,9 +11,10 @@ export const SearchModal: React.FC = () => {
 
   const filteredProducts = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      p.shortDescription.toLowerCase().includes(query.toLowerCase()) ||
-      p.category.toLowerCase().includes(query.toLowerCase())
+      p.category !== 'Gifts' &&
+      (p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.shortDescription.toLowerCase().includes(query.toLowerCase()) ||
+        p.category.toLowerCase().includes(query.toLowerCase()))
   );
 
   return (
@@ -80,7 +81,7 @@ export const SearchModal: React.FC = () => {
 
                 <div className="text-right">
                   <span className="text-xs font-serif font-bold text-rooveka-dark block">
-                    ₹{defaultSize.price}
+                    {defaultSize ? `₹${defaultSize.price}` : '₹0'}
                   </span>
                   <span className="text-[10px] text-rooveka-gold font-semibold uppercase tracking-wider">
                     VIEW →

@@ -19,18 +19,24 @@ import { ContactModal } from './components/ContactModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ShopPortal } from './components/ShopPortal';
 import { CustomerRedemption } from './components/CustomerRedemption';
+import { GiftCatalog } from './components/GiftCatalog';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { ToastNotification } from './components/ToastNotification';
 
 export function App() {
   const [showShopPortal, setShowShopPortal] = useState(false);
   const [showCustomerRewards, setShowCustomerRewards] = useState(false);
+  const [showGiftCatalog, setShowGiftCatalog] = useState(false);
 
   return (
     <CartProvider>
       <div className="min-h-screen bg-rooveka-cream text-rooveka-dark flex flex-col font-sans selection:bg-rooveka-gold/20">
         {/* Navigation */}
-        <Header onOpenShopPortal={() => setShowShopPortal(true)} onOpenCustomerRewards={() => setShowCustomerRewards(true)} />
+        <Header
+          onOpenShopPortal={() => setShowShopPortal(true)}
+          onOpenCustomerRewards={() => setShowCustomerRewards(true)}
+          onOpenGiftCatalog={() => setShowGiftCatalog(true)}
+        />
 
         {/* Main Content Flow */}
         <main className="flex-grow">
@@ -58,6 +64,12 @@ export function App() {
         {/* Shop & Customer Portals */}
         {showShopPortal && <ShopPortal onClose={() => setShowShopPortal(false)} />}
         {showCustomerRewards && <CustomerRedemption onClose={() => setShowCustomerRewards(false)} />}
+        {showGiftCatalog && (
+          <GiftCatalog
+            onClose={() => setShowGiftCatalog(false)}
+            onOpenRewards={() => { setShowGiftCatalog(false); setShowCustomerRewards(true); }}
+          />
+        )}
 
         {/* Floating Controls & Notifications */}
         <WhatsAppButton />
